@@ -1,0 +1,438 @@
+mysql> source C:/BioForge/sql/01_schema.sql
+Query OK, 0 rows affected (0.00 sec)
+
+Query OK, 0 rows affected (0.00 sec)
+
+Query OK, 0 rows affected (0.00 sec)
+
+Query OK, 0 rows affected (0.00 sec)
+
+Query OK, 0 rows affected (0.00 sec)
+
+Query OK, 9 rows affected (0.12 sec)
+
+Query OK, 1 row affected (0.00 sec)
+
+Database changed
+Query OK, 0 rows affected (0.00 sec)
+
+Query OK, 0 rows affected (0.00 sec)
+
+Query OK, 0 rows affected (0.00 sec)
+
+Query OK, 0 rows affected (0.02 sec)
+
+Query OK, 0 rows affected (0.00 sec)
+
+Query OK, 0 rows affected (0.00 sec)
+
+Query OK, 0 rows affected (0.00 sec)
+
+Query OK, 0 rows affected (0.02 sec)
+
+Query OK, 0 rows affected (0.00 sec)
+
+Query OK, 0 rows affected (0.00 sec)
+
+Query OK, 0 rows affected (0.00 sec)
+
+Query OK, 0 rows affected (0.03 sec)
+
+Query OK, 0 rows affected (0.00 sec)
+
+Query OK, 0 rows affected (0.00 sec)
+
+Query OK, 0 rows affected (0.00 sec)
+
+Query OK, 0 rows affected (0.02 sec)
+
+Query OK, 0 rows affected (0.00 sec)
+
+Query OK, 0 rows affected (0.00 sec)
+
+Query OK, 0 rows affected (0.00 sec)
+
+Query OK, 0 rows affected (0.02 sec)
+
+Query OK, 0 rows affected (0.00 sec)
+
+Query OK, 0 rows affected (0.00 sec)
+
+Query OK, 0 rows affected (0.00 sec)
+
+Query OK, 0 rows affected (0.00 sec)
+
+Query OK, 0 rows affected (0.00 sec)
+
+Query OK, 0 rows affected (0.03 sec)
+
+Query OK, 0 rows affected (0.00 sec)
+
+Query OK, 0 rows affected (0.00 sec)
+
+Query OK, 0 rows affected (0.00 sec)
+
+Query OK, 0 rows affected (0.02 sec)
+
+Query OK, 0 rows affected (0.00 sec)
+
+Query OK, 0 rows affected (0.00 sec)
+
+Query OK, 0 rows affected (0.00 sec)
+
+Query OK, 0 rows affected (0.03 sec)
+
+Query OK, 0 rows affected (0.00 sec)
+
+Query OK, 0 rows affected (0.00 sec)
+
+Query OK, 0 rows affected (0.00 sec)
+
+Query OK, 0 rows affected (0.03 sec)
+
+Query OK, 0 rows affected (0.00 sec)
+
+Query OK, 0 rows affected (0.00 sec)
+
+Query OK, 0 rows affected (0.00 sec)
+
+Query OK, 0 rows affected (0.01 sec)
+Records: 0  Duplicates: 0  Warnings: 0
+
+Query OK, 0 rows affected (0.02 sec)
+Records: 0  Duplicates: 0  Warnings: 0
+
+Query OK, 0 rows affected (0.01 sec)
+Records: 0  Duplicates: 0  Warnings: 0
+
+Query OK, 0 rows affected (0.01 sec)
+Records: 0  Duplicates: 0  Warnings: 0
+
+Query OK, 0 rows affected (0.01 sec)
+Records: 0  Duplicates: 0  Warnings: 0
+
+Query OK, 0 rows affected (0.01 sec)
+Records: 0  Duplicates: 0  Warnings: 0
+
+Query OK, 0 rows affected (0.01 sec)
+Records: 0  Duplicates: 0  Warnings: 0
+
+Query OK, 0 rows affected (0.01 sec)
+Records: 0  Duplicates: 0  Warnings: 0
+
+Query OK, 0 rows affected (0.01 sec)
+Records: 0  Duplicates: 0  Warnings: 0
+
+mysql> USE bioforge;
+Database changed
+mysql> SHOW TABLES;
++---------------------------+
+| Tables_in_bioforge        |
++---------------------------+
+| antibiotic                |
+| hospital                  |
+| mutation                  |
+| mutation_antibiotic_assoc |
+| outcome                   |
+| resistance_phenotype      |
+| strain                    |
+| strain_mutation           |
+| treatment                 |
++---------------------------+
+9 rows in set (0.01 sec)
+
+mysql> source C:/BioForge/sql/04_seed.sql
+Query OK, 0 rows affected (0.00 sec)
+
+Query OK, 0 rows affected (0.00 sec)
+
+Database changed
+Query OK, 0 rows affected (0.00 sec)
+
+Query OK, 5 rows affected (0.00 sec)
+Records: 5  Duplicates: 0  Warnings: 0
+
+Query OK, 20 rows affected (0.00 sec)
+Records: 20  Duplicates: 0  Warnings: 0
+
+Query OK, 27 rows affected (0.00 sec)
+Records: 27  Duplicates: 0  Warnings: 0
+
+Query OK, 200 rows affected (0.01 sec)
+Records: 200  Duplicates: 0  Warnings: 0
+
+Query OK, 200 rows affected (0.01 sec)
+Records: 200  Duplicates: 0  Warnings: 0
+
+Query OK, 100 rows affected (0.01 sec)
+Records: 100  Duplicates: 0  Warnings: 0
+
+Query OK, 200 rows affected (0.01 sec)
+Records: 200  Duplicates: 0  Warnings: 0
+
+Query OK, 200 rows affected (0.01 sec)
+Records: 200  Duplicates: 0  Warnings: 0
+
+Query OK, 114 rows affected (0.00 sec)
+Records: 114  Duplicates: 0  Warnings: 0
+
+Query OK, 200 rows affected (0.01 sec)
+Records: 200  Duplicates: 0  Warnings: 0
+
+Query OK, 200 rows affected (0.01 sec)
+Records: 200  Duplicates: 0  Warnings: 0
+
+Query OK, 200 rows affected (0.01 sec)
+Records: 200  Duplicates: 0  Warnings: 0
+
+Query OK, 200 rows affected (0.01 sec)
+Records: 200  Duplicates: 0  Warnings: 0
+
+Query OK, 200 rows affected (0.01 sec)
+Records: 200  Duplicates: 0  Warnings: 0
+
+Query OK, 200 rows affected (0.01 sec)
+Records: 200  Duplicates: 0  Warnings: 0
+
+Query OK, 200 rows affected (0.01 sec)
+Records: 200  Duplicates: 0  Warnings: 0
+
+Query OK, 102 rows affected (0.00 sec)
+Records: 102  Duplicates: 0  Warnings: 0
+
+Query OK, 200 rows affected (0.00 sec)
+Records: 200  Duplicates: 0  Warnings: 0
+
+Query OK, 200 rows affected (0.01 sec)
+Records: 200  Duplicates: 0  Warnings: 0
+
+Query OK, 200 rows affected (0.01 sec)
+Records: 200  Duplicates: 0  Warnings: 0
+
+Query OK, 200 rows affected (0.01 sec)
+Records: 200  Duplicates: 0  Warnings: 0
+
+Query OK, 200 rows affected (0.01 sec)
+Records: 200  Duplicates: 0  Warnings: 0
+
+Query OK, 200 rows affected (0.01 sec)
+Records: 200  Duplicates: 0  Warnings: 0
+
+Query OK, 200 rows affected (0.01 sec)
+Records: 200  Duplicates: 0  Warnings: 0
+
+Query OK, 102 rows affected (0.00 sec)
+Records: 102  Duplicates: 0  Warnings: 0
+
+Query OK, 200 rows affected (0.01 sec)
+Records: 200  Duplicates: 0  Warnings: 0
+
+Query OK, 200 rows affected (0.01 sec)
+Records: 200  Duplicates: 0  Warnings: 0
+
+Query OK, 200 rows affected (0.01 sec)
+Records: 200  Duplicates: 0  Warnings: 0
+
+Query OK, 128 rows affected (0.01 sec)
+Records: 128  Duplicates: 0  Warnings: 0
+
+Query OK, 46 rows affected (0.00 sec)
+Records: 46  Duplicates: 0  Warnings: 0
+
+Query OK, 0 rows affected (0.01 sec)
+
+mysql> source C:/BioForge/sql/verify_schema.sql
+Query OK, 0 rows affected (0.00 sec)
+
+Query OK, 0 rows affected (0.00 sec)
+
+Query OK, 0 rows affected (0.00 sec)
+
+Query OK, 0 rows affected (0.00 sec)
+
+Query OK, 0 rows affected (0.00 sec)
+
+Database changed
+Query OK, 0 rows affected (0.00 sec)
+
++---------------------------+--------+------------+
+| TABLE_NAME                | ENGINE | TABLE_ROWS |
++---------------------------+--------+------------+
+| antibiotic                | InnoDB |         20 |
+| hospital                  | InnoDB |          5 |
+| mutation                  | InnoDB |         27 |
+| mutation_antibiotic_assoc | InnoDB |         46 |
+| outcome                   | InnoDB |       1502 |
+| resistance_phenotype      | InnoDB |        728 |
+| strain                    | InnoDB |        500 |
+| strain_mutation           | InnoDB |        514 |
+| treatment                 | InnoDB |       1502 |
++---------------------------+--------+------------+
+9 rows in set (0.01 sec)
+
+Query OK, 0 rows affected (0.00 sec)
+
++---------------------------+------+
+| t                         | n    |
++---------------------------+------+
+| hospital                  |    5 |
+| antibiotic                |   20 |
+| mutation                  |   27 |
+| strain                    |  500 |
+| strain_mutation           |  514 |
+| treatment                 | 1502 |
+| outcome                   | 1502 |
+| resistance_phenotype      |  728 |
+| mutation_antibiotic_assoc |   46 |
++---------------------------+------+
+9 rows in set (0.00 sec)
+
+Query OK, 0 rows affected (0.00 sec)
+
++---------------------------+---------------+------------------+-------------+
+| TABLE_NAME                | COLUMN_NAME   | references_table | DELETE_RULE |
++---------------------------+---------------+------------------+-------------+
+| mutation_antibiotic_assoc | antibiotic_id | antibiotic       | RESTRICT    |
+| mutation_antibiotic_assoc | mutation_id   | mutation         | CASCADE     |
+| outcome                   | treatment_id  | treatment        | CASCADE     |
+| resistance_phenotype      | antibiotic_id | antibiotic       | RESTRICT    |
+| resistance_phenotype      | strain_id     | strain           | CASCADE     |
+| strain                    | hospital_id   | hospital         | SET NULL    |
+| strain_mutation           | mutation_id   | mutation         | RESTRICT    |
+| strain_mutation           | strain_id     | strain           | CASCADE     |
+| treatment                 | antibiotic_id | antibiotic       | RESTRICT    |
+| treatment                 | strain_id     | strain           | CASCADE     |
++---------------------------+---------------+------------------+-------------+
+10 rows in set (0.00 sec)
+
+Query OK, 0 rows affected (0.00 sec)
+
+Query OK, 0 rows affected (0.00 sec)
+
++---------------------------+-----------------------+-----------------+
+| TABLE_NAME                | CONSTRAINT_NAME       | CONSTRAINT_TYPE |
++---------------------------+-----------------------+-----------------+
+| antibiotic                | name                  | UNIQUE          |
+| hospital                  | uq_hospital_name_city | UNIQUE          |
+| mutation                  | uq_mutation_signature | UNIQUE          |
+| mutation_antibiotic_assoc | uq_assoc              | UNIQUE          |
+| outcome                   | treatment_id          | UNIQUE          |
+| resistance_phenotype      | uq_phenotype_test     | UNIQUE          |
+| strain                    | genome_accession      | UNIQUE          |
+| strain_mutation           | chk_sm_confidence     | CHECK           |
++---------------------------+-----------------------+-----------------+
+8 rows in set (0.00 sec)
+
+Query OK, 0 rows affected (0.00 sec)
+
++-------------------+
+| orphan_treatments |
++-------------------+
+|                 0 |
++-------------------+
+1 row in set (0.00 sec)
+
++-----------------+
+| orphan_outcomes |
++-----------------+
+|               0 |
++-----------------+
+1 row in set (0.00 sec)
+
++-------------------------+
+| orphan_strain_mutations |
++-------------------------+
+|                       0 |
++-------------------------+
+1 row in set (0.00 sec)
+
+Query OK, 0 rows affected (0.00 sec)
+
++----------------------------+
+| treatments_without_outcome |
++----------------------------+
+|                          0 |
++----------------------------+
+1 row in set (0.00 sec)
+
++-----------------------------------+
+| treatments_with_multiple_outcomes |
++-----------------------------------+
+|                                 0 |
++-----------------------------------+
+1 row in set (0.00 sec)
+
+Query OK, 0 rows affected (0.00 sec)
+
++------------------------+
+| follow_up_before_start |
++------------------------+
+|                      0 |
++------------------------+
+1 row in set (0.00 sec)
+
+Query OK, 0 rows affected (0.00 sec)
+
++------------------------+---------+
+| platform               | strains |
++------------------------+---------+
+| Oxford Nanopore MinION |     121 |
+| Illumina NovaSeq       |     127 |
+| Illumina MiSeq         |     125 |
+| PacBio Sequel II       |     127 |
++------------------------+---------+
+4 rows in set (0.00 sec)
+
+Query OK, 0 rows affected (0.00 sec)
+
+Query OK, 0 rows affected (0.00 sec)
+
++--------------+------------+-----------------+
+| carries_gyrA | treatments | pct_bad_outcome |
++--------------+------------+-----------------+
+|            0 |         69 |            13.0 |
+|            1 |          9 |            77.8 |
++--------------+------------+-----------------+
+2 rows in set (0.01 sec)
+
+Query OK, 0 rows affected (0.00 sec)
+
++------+------------+--------------------------+
+| yr   | treatments | resistance_confirmed_pct |
++------+------------+--------------------------+
+| 2021 |        368 |                      8.7 |
+| 2022 |        269 |                     11.5 |
+| 2023 |        358 |                      9.5 |
+| 2024 |        239 |                     10.5 |
+| 2025 |        268 |                     17.2 |
++------+------------+--------------------------+
+5 rows in set (0.00 sec)
+
+Query OK, 0 rows affected (0.00 sec)
+
++------------------------------------+--------------+
+| status                             | associations |
++------------------------------------+--------------+
+| Verified (cited)                   |           10 |
+| UNVERIFIED - confirm before citing |           36 |
++------------------------------------+--------------+
+2 rows in set (0.00 sec)
+
+Query OK, 0 rows affected (0.00 sec)
+
++---------------------------+-------------------------------------------------------------------------------------------------------------------+
+| TABLE_NAME                | TABLE_COMMENT                                                                                                     |
++---------------------------+-------------------------------------------------------------------------------------------------------------------+
+| antibiotic                | Reference data: real antibiotic names/classes                                                                     |
+| hospital                  | SYNTHETIC demo data (fictional hospitals)                                                                         |
+| mutation                  | Reference data: real gene/variant names; see mutation_antibiotic_assoc.evidence_source for verified vs UNVERIFIED |
+| mutation_antibiotic_assoc | Reference data: evidence_source marks Verified (cited) vs UNVERIFIED entries                                      |
+| outcome                   | SYNTHETIC demo data                                                                                               |
+| resistance_phenotype      | SYNTHETIC demo data                                                                                               |
+| strain                    | SYNTHETIC demo data                                                                                               |
+| strain_mutation           | SYNTHETIC demo data                                                                                               |
+| treatment                 | SYNTHETIC demo data                                                                                               |
++---------------------------+-------------------------------------------------------------------------------------------------------------------+
+9 rows in set (0.00 sec)
+
+mysql> notee
