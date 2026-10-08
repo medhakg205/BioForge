@@ -1,14 +1,16 @@
-ROLE        ACTION                           EXPECTED  ACTUAL    RESULT
-researcher  read strain                      allowed   allowed   PASS
-researcher  read de-identified treatments    allowed   allowed   PASS
-researcher  read prescribing_physician       denied    denied    PASS
-researcher  update outcome                   denied    denied    PASS
-clinician   read treatment                   allowed   allowed   PASS
-clinician   update outcome                   allowed   allowed   PASS
-clinician   update strain                    denied    denied    PASS
-clinician   delete treatment                 denied    denied    PASS
-etl         insert mutation                  allowed   allowed   PASS
-etl         read strain                      denied    denied    PASS
-etl         update outcome                   denied    denied    PASS
-admin       read treatment                   allowed   allowed   PASS
-admin       update outcome                   allowed   allowed   PASS
+ROLE        ACTION                               EXPECTED  ACTUAL    RESULT
+researcher  read strain                          allowed   allowed   PASS
+researcher  read de-identified treatments        allowed   allowed   PASS
+researcher  read Anuka view: resistance rate     allowed   allowed   PASS
+researcher  read Anuka view: mutation failure    allowed   allowed   PASS
+researcher  read prescribing_physician           denied    denied    PASS
+researcher  update outcome                       denied    denied    PASS
+clinician   read treatment                       allowed   allowed   PASS
+clinician   update outcome                       allowed   allowed   PASS
+clinician   update strain                        denied    denied    PASS
+clinician   delete treatment                     denied    denied    PASS
+etl         insert mutation                      allowed   allowed   PASS
+etl         read strain                          denied    denied    PASS
+etl         update outcome                       denied    denied    PASS
+admin       read treatment                       allowed   allowed   PASS
+admin       update outcome                       allowed   allowed   PASS
