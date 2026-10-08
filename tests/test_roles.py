@@ -4,6 +4,8 @@ from app.db import get_connection
 TESTS = [
     ("researcher", "read strain",                      "SELECT COUNT(*) FROM strain", True),
     ("researcher", "read de-identified treatments",    "SELECT COUNT(*) FROM v_treatment_deidentified", True),
+    ("researcher", "read Anuka view: resistance rate",  "SELECT COUNT(*) FROM v_resistance_rate_monthly", True),
+    ("researcher", "read Anuka view: mutation failure", "SELECT COUNT(*) FROM v_mutation_treatment_failure", True),
     ("researcher", "read prescribing_physician",       "SELECT prescribing_physician FROM treatment LIMIT 1", False),
     ("researcher", "update outcome",                   "UPDATE outcome SET notes='x' WHERE outcome_id=1", False),
     ("clinician",  "read treatment",                   "SELECT COUNT(*) FROM treatment", True),
@@ -18,7 +20,7 @@ TESTS = [
 ]
 
 conns = {}
-print(f"{'ROLE':11} {'ACTION':32} {'EXPECTED':9} {'ACTUAL':9} RESULT")
+print(f"{'ROLE':11} {'ACTION':36} {'EXPECTED':9} {'ACTUAL':9} RESULT")
 for role, desc, sql, should in TESTS:
     if role not in conns:
         conns[role] = get_connection(role)
@@ -33,5 +35,5 @@ for role, desc, sql, should in TESTS:
         actual = False
     finally:
         conn.rollback()   # never keep test changes
-    print(f"{role:11} {desc:32} {'allowed' if should else 'denied':9} "
+    print(f"{role:11} {desc:36} {'allowed' if should else 'denied':9} "
           f"{'allowed' if actual else 'denied':9} {'PASS' if actual == should else 'FAIL'}")
