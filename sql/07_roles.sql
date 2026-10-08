@@ -33,6 +33,8 @@ GRANT SELECT ON bioforge.strain_mutation            TO 'bioforge_researcher'@'lo
 GRANT SELECT ON bioforge.outcome                    TO 'bioforge_researcher'@'localhost';
 GRANT SELECT ON bioforge.resistance_phenotype       TO 'bioforge_researcher'@'localhost';
 GRANT SELECT ON bioforge.mutation_antibiotic_assoc  TO 'bioforge_researcher'@'localhost';
+GRANT SELECT ON bioforge.v_resistance_rate_monthly     TO 'bioforge_researcher'@'localhost';
+GRANT SELECT ON bioforge.v_mutation_treatment_failure  TO 'bioforge_researcher'@'localhost';
 
 -- Admin: everything on the bioforge database
 GRANT ALL PRIVILEGES ON bioforge.* TO 'bioforge_admin'@'localhost';
