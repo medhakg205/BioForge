@@ -122,6 +122,62 @@ li[role="option"]:hover { background: var(--bg) !important; }
 
 st.markdown("<style>:root{" + css_vars + "}" + CSS + "</style>", unsafe_allow_html=True)
 
+dark = st.session_state["dark"]
+st.markdown(f"""
+<style>
+:root {{ color-scheme: {"dark" if dark else "light"}; }}
+
+/* every layer of every input: fill = surface colour, text = readable colour */
+[data-testid="stForm"] div[data-baseweb="input"],
+[data-testid="stForm"] div[data-baseweb="input"] > div,
+[data-testid="stForm"] div[data-baseweb="base-input"],
+[data-testid="stForm"] div[data-baseweb="textarea"],
+[data-testid="stForm"] div[data-baseweb="textarea"] > div,
+[data-testid="stForm"] div[data-baseweb="select"] > div,
+[data-testid="stForm"] [data-testid="stNumberInputContainer"],
+[data-testid="stForm"] [data-testid="stDateInputField"] {{
+    background-color: var(--bg) !important;
+    border-color: var(--border) !important;
+    color: var(--text) !important; }}
+
+[data-testid="stForm"] input, [data-testid="stForm"] textarea {{
+    background-color: var(--bg) !important;
+    color: var(--text) !important;
+    -webkit-text-fill-color: var(--text) !important;
+    caret-color: var(--text) !important; }}
+[data-testid="stForm"] ::placeholder {{
+    color: var(--muted) !important; -webkit-text-fill-color: var(--muted) !important; opacity: 1; }}
+
+/* selected value + dropdown arrow */
+[data-testid="stForm"] div[data-baseweb="select"] * {{ color: var(--text) !important; }}
+[data-testid="stForm"] svg {{ fill: var(--muted) !important; }}
+
+/* number +/- buttons */
+[data-testid="stNumberInput"] button {{
+    background-color: var(--surface) !important; color: var(--text) !important;
+    border-color: var(--border) !important; }}
+
+/* checkbox */
+label[data-baseweb="checkbox"] > span:first-child {{
+    background-color: var(--bg) !important; border-color: var(--muted) !important; }}
+label[data-baseweb="checkbox"]:has(input:checked) > span:first-child {{
+    background-color: var(--accent) !important; border-color: var(--accent) !important; }}
+
+/* save button */
+[data-testid="stForm"] button {{
+    background-color: var(--accent) !important; border: none !important; }}
+[data-testid="stForm"] button * {{ color: #fff !important; }}
+
+/* calendar popup and dropdown lists (they render outside the form) */
+div[data-baseweb="calendar"], div[data-baseweb="calendar"] * {{
+    background-color: var(--surface) !important; color: var(--text) !important; }}
+div[data-baseweb="calendar"] [aria-selected="true"],
+div[data-baseweb="calendar"] [aria-selected="true"] * {{
+    background-color: var(--accent) !important; color: #fff !important; }}
+div[data-baseweb="popover"] ul, div[data-baseweb="popover"] li {{
+    background-color: var(--surface) !important; color: var(--text) !important; }}
+</style>
+""", unsafe_allow_html=True)
 
 # ---------------------------------------------------------------- helpers
 def run_query(role, sql, params=None):
@@ -201,6 +257,27 @@ with tab_r:
            ("Known mutations", f"{int(c['mutations']):,}"),
            ("Lab susceptibility tests", f"{int(c['lab_tests']):,}")])
 
+    k = cached("researcher", """
+        SELECT ROUND(100*SUM(result IN ('failed','relapsed','deceased'))/COUNT(*),1) AS fail_pct,
+               ROUND(100*SUM(resistance_confirmed)/COUNT(*),1) AS res_pct
+        FROM outcome WHERE is_active = TRUE
+    """).iloc[0]
+    worst = cached("researcher", """
+        SELECT antibiotic_name, ROUND(100*SUM(resistant_count)/SUM(total_treatments),1) AS pct
+        FROM v_resistance_rate_monthly GROUP BY antibiotic_name ORDER BY pct DESC LIMIT 1""")
+    risk = cached("researcher", """
+        SELECT gene_name, antibiotic_name, failure_rate_pct FROM v_mutation_treatment_failure
+        WHERE total_treatments >= 5 ORDER BY failure_rate_pct DESC LIMIT 1""")
+    st.write("")
+    stats([
+        ("Overall treatment failure", f"{float(k['fail_pct'])}%"),
+        ("Resistance confirmed", f"{float(k['res_pct'])}%"),
+        ("Most resistant antibiotic",
+         f"{worst.iloc[0]['antibiotic_name']} ({float(worst.iloc[0]['pct'])}%)" if not worst.empty else "n/a"),
+        ("Highest-risk mutation",
+         f"{risk.iloc[0]['gene_name']} + {risk.iloc[0]['antibiotic_name']}" if not risk.empty else "n/a"),
+    ])
+
     # ---- resistance over time
     section("Resistance over time", "Share of treatments where resistance was confirmed")
     df = cached("researcher", "SELECT * FROM v_resistance_rate_monthly ORDER BY month_label")
@@ -271,19 +348,18 @@ with tab_r:
                 st.caption("gyrA is highlighted: it is the mutation linked to fluoroquinolone failure.")
 
     with right:
-        section("Lab resistance, real strains", "BV-BRC E. coli, share of tests that are resistant")
+        section("Lab resistance by antibiotic", "Share of lab susceptibility tests that are resistant")
         df3 = cached("researcher", """
             SELECT a.name AS antibiotic, COUNT(*) AS tests,
                    ROUND(100 * SUM(rp.susceptibility = 'R') / COUNT(*), 2) AS pct_resistant
             FROM resistance_phenotype rp
             JOIN strain s     ON s.strain_id = rp.strain_id AND s.is_active = TRUE
             JOIN antibiotic a ON a.antibiotic_id = rp.antibiotic_id
-            WHERE s.genomic_metadata->>'$.data_source' = 'BV-BRC'
             GROUP BY a.name ORDER BY pct_resistant DESC
         """)
         df3 = to_num(df3, ["tests", "pct_resistant"])
         if df3.empty:
-            msg("info", "No BV-BRC lab data found. Did 05_real_import.sql run?")
+            msg("info", "No lab data found. Did 05_real_import.sql run?")
         else:
             bars3 = (alt.Chart(df3).mark_bar(cornerRadiusEnd=3, color=T["teal"])
                      .encode(y=alt.Y("antibiotic:N", sort="-x", title=None),
@@ -292,10 +368,40 @@ with tab_r:
                                       alt.Tooltip("pct_resistant:Q", title="Resistant %", format=".1f"),
                                       alt.Tooltip("tests:Q", title="Tests")]))
             st.altair_chart(finish(bars3, max(220, 26 * len(df3))), theme=None)
+            st.caption(f"{len(df3)} antibiotics in this chart.")
+
+    h_col, o_col = st.columns(2, gap="large")
+    with h_col:
+        section("Failure rate by hospital", "Share of treatments that failed, relapsed or ended in death")
+        dh = to_num(cached("researcher", """
+            SELECT h.name AS hospital, COUNT(*) AS total,
+                   ROUND(100*SUM(o.result IN ('failed','relapsed','deceased'))/COUNT(*),1) AS failure_pct
+            FROM hospital h
+            JOIN strain s ON s.hospital_id = h.hospital_id AND s.is_active = TRUE
+            JOIN v_treatment_deidentified t ON t.strain_id = s.strain_id
+            JOIN outcome o ON o.treatment_id = t.treatment_id AND o.is_active = TRUE
+            WHERE h.is_active = TRUE GROUP BY h.hospital_id, h.name
+        """), ["total", "failure_pct"])
+        if not dh.empty:
+            ch = (alt.Chart(dh).mark_bar(cornerRadiusEnd=3, color=T["accent"])
+                  .encode(y=alt.Y("hospital:N", sort="-x", title=None),
+                          x=alt.X("failure_pct:Q", title="Failure (%)"),
+                          tooltip=["hospital", "total", "failure_pct"]))
+            st.altair_chart(finish(ch, max(200, 40 * len(dh))), theme=None)
+    with o_col:
+        section("Outcome mix", "Number of treatments by result")
+        do = to_num(cached("researcher",
+            "SELECT result, COUNT(*) AS n FROM outcome WHERE is_active = TRUE GROUP BY result"), ["n"])
+        if not do.empty:
+            co = (alt.Chart(do).mark_bar(cornerRadiusEnd=3, color=T["teal"])
+                  .encode(y=alt.Y("result:N", sort="-x", title=None),
+                          x=alt.X("n:Q", title="Treatments"),
+                          tooltip=["result", "n"]))
+            st.altair_chart(finish(co, max(200, 40 * len(do))), theme=None)
 
     # ---- strain lookup
     section("Strain lookup", "Full history: mutations, treatments and outcomes. "
-                             "IDs 1-500 are synthetic with full history; 100001+ are real, lab results only.")
+                             "IDs 100001+ are real, lab results only with no treatment history.")
     sid = st.number_input("Strain ID", min_value=1, value=1, step=1)
     hist = run_query("researcher", """
         SELECT s.strain_id, s.species, s.collection_date, h.name AS hospital,
@@ -339,6 +445,8 @@ with tab_c:
             "is rejected by a trigger, and the error is shown here.")
 
     with main:
+        feedback = st.empty()   # result message appears here, above the form
+
         with st.form("entry"):
             a1, a2 = st.columns(2)
             strain_id = a1.number_input("Strain ID", min_value=1, value=1, step=1)
@@ -356,8 +464,9 @@ with tab_c:
             submit = st.form_submit_button("Save treatment and outcome", type="primary")
 
         if submit:
-            conn = get_connection("clinician")
+            conn = None
             try:
+                conn = get_connection("clinician")
                 cur = conn.cursor()
                 cur.execute(
                     """INSERT INTO treatment
@@ -372,12 +481,20 @@ with tab_c:
                        VALUES (%s, %s, %s, %s, %s)""",
                     (tid, result, resistance, follow_up, notes or None))
                 conn.commit()
-                msg("ok", f"Saved. Treatment #{tid} and its outcome were added.")
+                text = f"Saved. Treatment #{tid} (start {start}, follow-up {follow_up}) and its outcome were added."
+                feedback.markdown(f'<div class="bf-msg ok">{html.escape(text)}</div>', unsafe_allow_html=True)
+                st.toast("Saved", icon="✅")
             except mysql.connector.Error as e:
-                conn.rollback()
-                msg("err", f"Database rejected this entry: {e.msg}")
+                if conn: conn.rollback()
+                text = f"Database rejected this entry: {e.msg}"
+                feedback.markdown(f'<div class="bf-msg err">{html.escape(text)}</div>', unsafe_allow_html=True)
+                st.toast("Rejected by the database", icon="🚫")
+            except Exception as e:
+                if conn: conn.rollback()
+                text = f"Unexpected error: {type(e).__name__}: {e}"
+                feedback.markdown(f'<div class="bf-msg err">{html.escape(text)}</div>', unsafe_allow_html=True)
             finally:
-                conn.close()
+                if conn: conn.close()
 
     section("Most recent entries")
     recent = run_query("clinician", """
