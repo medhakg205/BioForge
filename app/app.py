@@ -8,7 +8,7 @@ import streamlit as st
 
 from db import get_connection
 
-st.set_page_config(page_title="BioForge", layout="wide", initial_sidebar_state="collapsed")
+st.set_page_config(page_title="BioForge", layout="wide", initial_sidebar_state="expanded")
 
 # ---------------------------------------------------------------- themes
 LIGHT = dict(
@@ -25,9 +25,7 @@ DARK = dict(
 )
 
 st.session_state.setdefault("dark", False)
-top_l, top_r = st.columns([6, 1])
-with top_r:
-    st.toggle("Dark mode", key="dark")
+st.session_state.setdefault("role_sidebar", "Researcher")
 T = DARK if st.session_state["dark"] else LIGHT
 
 css_vars = "".join(f"--{k}:{v};" for k, v in T.items() if k != "series")
@@ -37,9 +35,22 @@ CSS = """
 
 .stApp { background: var(--bg); font-family: 'Inter', system-ui, sans-serif; }
 header[data-testid="stHeader"] { background: transparent; }
-[data-testid="stSidebar"], [data-testid="stSidebarCollapsedControl"],
-[data-testid="stToolbar"], [data-testid="stDecoration"], #MainMenu, footer { display: none !important; }
-.block-container { max-width: 1100px; padding: 2.2rem 2rem 4rem; }
+[data-testid="stDecoration"], #MainMenu, footer { display: none !important; }
+[data-testid="stSidebarCollapsedControl"] {
+    display: flex !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    z-index: 1001 !important;
+}
+.block-container { max-width: none; width: 100%; padding: 1.6rem 2.5rem 3rem; }
+[data-testid="stSidebar"] {
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+}
+[data-testid="stSidebar"] > div:first-child { padding: 1.2rem .9rem; }
+[data-testid="stSidebar"] [data-testid="stMarkdownContainer"] p { color: var(--text); }
+[data-testid="stRadio"] > label { font-size: .75rem; text-transform: uppercase;
+    letter-spacing: .08em; color: var(--muted) !important; }
 
 /* text colours */
 .stApp [data-testid="stMarkdownContainer"] p,
@@ -52,7 +63,7 @@ header[data-testid="stHeader"] { background: transparent; }
             letter-spacing: -0.02em; color: var(--text); line-height: 1.1; }
 .bf-tag { color: var(--muted); font-size: .9rem; margin-top: 4px; }
 .bf-rule { border: 0; border-top: 1px solid var(--border); margin: 14px 0 6px; }
-.bf-sec { margin: 34px 0 10px; }
+.bf-sec { margin: 24px 0 10px; }
 .bf-sec .t { font-family: 'Fraunces', Georgia, serif; font-size: 1.3rem; font-weight: 600;
              color: var(--text); letter-spacing: -0.01em; }
 .bf-sec .s { color: var(--muted); font-size: .88rem; margin-top: 2px; }
@@ -68,15 +79,6 @@ header[data-testid="stHeader"] { background: transparent; }
 .bf-stat .l { font-size: .72rem; text-transform: uppercase; letter-spacing: .08em;
               color: var(--muted); margin-top: 8px; }
 @media (max-width: 700px) { .bf-stats { grid-template-columns: repeat(2, 1fr); } }
-
-/* tabs */
-button[data-baseweb="tab"] { background: transparent !important; }
-.stApp button[data-baseweb="tab"] [data-testid="stMarkdownContainer"] p {
-    color: var(--muted) !important; font-weight: 500; font-size: .95rem; }
-.stApp button[data-baseweb="tab"][aria-selected="true"] [data-testid="stMarkdownContainer"] p {
-    color: var(--text) !important; }
-div[data-baseweb="tab-highlight"] { background: var(--accent) !important; }
-div[data-baseweb="tab-border"] { background: var(--border) !important; }
 
 /* inputs */
 div[data-baseweb="input"], div[data-baseweb="base-input"], div[data-baseweb="textarea"],
@@ -244,21 +246,31 @@ def finish(chart, height):
 
 
 # ---------------------------------------------------------------- header
-with top_l:
+with st.sidebar:
     st.markdown('<div class="bf-brand">BioForge</div>'
-                '<div class="bf-tag">Linking bacterial mutations to antibiotic treatment outcomes</div>',
+                '<div class="bf-tag">Antimicrobial resistance insights</div>',
                 unsafe_allow_html=True)
-st.markdown('<hr class="bf-rule">', unsafe_allow_html=True)
-
-tab_r, tab_c, tab_admin, tab_etl = st.tabs([
-    "Researcher dashboard",
-    "Clinician entry",
-    "Admin audit",
-    "ETL data entry",
-])
+    st.markdown('<hr class="bf-rule">', unsafe_allow_html=True)
+    selected_role = st.radio(
+        "Workspace",
+        ["Researcher", "Clinician", "Admin", "ETL"],
+        key="role_sidebar",
+    )
+    st.markdown('<hr class="bf-rule">', unsafe_allow_html=True)
+    st.toggle("Dark mode", key="dark")
+    st.caption({
+        "Researcher": "Read-only research views • prescribing physician hidden",
+        "Clinician": "Submit treatment and outcome records",
+        "Admin": "Review all records and update audit history",
+        "ETL": "Insert strain and mutation records",
+    }[selected_role])
 
 # ================================================================ RESEARCHER
-with tab_r:
+if selected_role == "Researcher":
+    _, refresh_col = st.columns([5, 1])
+    if refresh_col.button("Refresh data", use_container_width=True):
+        cached.clear()
+        st.rerun()
     st.markdown('<div class="bf-role">bioforge_researcher &middot; read-only &middot; '
                 'prescribing_physician hidden</div>', unsafe_allow_html=True)
 
@@ -449,7 +461,7 @@ with tab_r:
         st.caption("Rows repeat because every mutation is joined to every treatment. This is expected.")
 
 # ================================================================ CLINICIAN
-with tab_c:
+if selected_role == "Clinician":
     st.markdown('<div class="bf-role">bioforge_clinician &middot; can insert treatments and outcomes</div>',
                 unsafe_allow_html=True)
     abx = run_query("clinician", "SELECT antibiotic_id, name FROM antibiotic ORDER BY name")
@@ -566,7 +578,7 @@ with tab_c:
     table(recent)
 
 # ================================================================ ADMIN
-with tab_admin:
+if selected_role == "Admin":
     st.markdown(
         '<div class="bf-role">bioforge_admin &middot; privileged local-demo access</div>',
         unsafe_allow_html=True,
@@ -577,24 +589,25 @@ with tab_admin:
     )
     records_tab, audit_tab = st.tabs(["Recent clinical records", "Audit log"])
     with records_tab:
-        section("Recent clinical records", "New clinician submissions appear here")
+        section("Recent clinical records", "Active clinician submissions; soft-deleted records are hidden")
         recent_records = run_query(
             "admin",
             """
             SELECT t.treatment_id, t.strain_id, h.name AS hospital,
                    a.name AS antibiotic, t.start_date, t.prescribing_physician,
-                   o.result, o.follow_up_date, t.is_active
+                   o.result, o.follow_up_date
             FROM treatment t
             JOIN strain s ON s.strain_id = t.strain_id
             LEFT JOIN hospital h ON h.hospital_id = s.hospital_id
             JOIN antibiotic a ON a.antibiotic_id = t.antibiotic_id
-            LEFT JOIN outcome o ON o.treatment_id = t.treatment_id
+            JOIN outcome o ON o.treatment_id = t.treatment_id
+            WHERE t.is_active = TRUE AND o.is_active = TRUE
             ORDER BY t.treatment_id DESC
             LIMIT 100
             """,
         )
         if recent_records.empty:
-            msg("info", "No clinical treatment records have been submitted yet.")
+            msg("info", "No active clinical treatment records have been submitted yet.")
         else:
             table(recent_records, max_rows=100)
 
@@ -626,7 +639,7 @@ with tab_admin:
             table(audit_rows, max_rows=100)
 
 # ================================================================ ETL
-with tab_etl:
+if selected_role == "ETL":
     st.markdown(
         '<div class="bf-role">bioforge_etl &middot; insert-only data entry</div>',
         unsafe_allow_html=True,
