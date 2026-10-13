@@ -88,3 +88,11 @@ GRANT EXECUTE ON PROCEDURE bioforge.sp_record_treatment
     TO 'bioforge_clinician'@'%';
 GRANT EXECUTE ON PROCEDURE bioforge.sp_record_treatment
     TO 'bioforge_clinician'@'localhost';
+GRANT EXECUTE ON FUNCTION bioforge.fn_failure_rate
+    TO 'bioforge_researcher'@'localhost';
+GRANT EXECUTE ON FUNCTION bioforge.fn_failure_rate
+    TO 'bioforge_clinician'@'localhost';
+GRANT EXECUTE ON FUNCTION bioforge.fn_failure_rate
+    TO 'bioforge_clinician'@'%';
+
+FLUSH PRIVILEGES;

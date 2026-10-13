@@ -52,7 +52,7 @@ BEGIN
              'is_active', NEW.is_active,
              'deleted_at', NEW.deleted_at
          ),
-         CURRENT_USER());
+         USER());
 END$$
 
 CREATE TRIGGER trg_outcome_audit
@@ -88,7 +88,7 @@ BEGIN
              'is_active', NEW.is_active,
              'deleted_at', NEW.deleted_at
          ),
-         CURRENT_USER());
+         USER());
 END$$
 
 DELIMITER ;
