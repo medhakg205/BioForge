@@ -42,6 +42,11 @@ rebuilds the database every time. Always re-run 04 (and 05) afterwards.
 `04_seed.sql` is already generated. Only run `python generate_seed.py` if you edit the
 generator; it rewrites `04_seed.sql`.
 
+To build the isolated performance dataset, run `python generate_seed.py --scale`. This
+writes `bioforge_perf_seed.sql`, a self-contained script that creates the separate
+`bioforge_perf` database with 50,000 synthetic treatment/outcome records. It drops and
+recreates only `bioforge_perf`; it does not modify the main `bioforge` database.
+
 ## 3. Add REAL strains from BV-BRC
 **a) Download the AMR phenotype file** (tab-delimited, real lab susceptibility results):
 `ftp://ftp.bvbrc.org/RELEASE_NOTES/PATRIC_genomes_AMR.txt`
@@ -71,11 +76,21 @@ Real strains get ids 100001+, so they never clash with the synthetic ones (1-500
 labelled `genomic_metadata->>'$.data_source' = 'BV-BRC'`; synthetic ones say `synthetic`.
 
 ## 4. Run order for the whole team
-`01_schema.sql` -> (Tanya: `02_indexes.sql`, `03_triggers.sql`) -> `04_seed.sql` ->
-`05_real_import.sql` -> (Anuka: `05_views.sql`, `06_queries.sql`) -> (Tanya: `07_roles.sql`)
+`01_schema.sql` -> `02_indexes.sql` -> `03_triggers.sql` -> `04_seed.sql` ->
+`05_real_import.sql` -> `06_views.sql` -> `07_roles.sql` ->
+`09_routines.sql` -> `10_audit.sql`
 
-(Name clash: Anuka's views file is also numbered 05. Rename the importer's output with
-`--out 04b_real_import.sql` if you want strict ordering.)
+Run `tests/test_roles.py` with pytest after setting the `BIOFORGE_*_PASSWORD`
+environment variables and applying the SQL files. It checks role permissions and invokes
+the treatment procedure, cleaning up its test record afterwards.
+`tests/test_transactions.sql` contains five two-session MySQL Workbench walkthroughs.
+`tests/perf_scaled.sql` runs EXPLAIN ANALYZE comparisons against `bioforge_perf` and
+requires MySQL 8.0.18 or newer.
+
+The Streamlit app exposes researcher, clinician, admin-audit, and ETL-entry tabs for a
+trusted local demo. It has no user authentication; do not expose it to untrusted users.
+The ETL tab can insert strains, mutations, and their link, but cannot read or change
+existing records.
 
 ## 5. What is real and what is not (say this in the report)
 | Data | Status |

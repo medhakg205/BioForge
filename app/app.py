@@ -218,6 +218,16 @@ def table(df, max_rows=200):
     st.markdown(f'<div class="bf-scroll">{body.replace(chr(10), "")}</div>', unsafe_allow_html=True)
 
 
+def download_chart_csv(df, key, filename):
+    st.download_button(
+        "Download CSV",
+        data=df.to_csv(index=False).encode("utf-8"),
+        file_name=filename,
+        mime="text/csv",
+        key=key,
+    )
+
+
 def msg(kind, text):
     st.markdown(f'<div class="bf-msg {kind}">{html.escape(text)}</div>', unsafe_allow_html=True)
 
@@ -240,7 +250,12 @@ with top_l:
                 unsafe_allow_html=True)
 st.markdown('<hr class="bf-rule">', unsafe_allow_html=True)
 
-tab_r, tab_c = st.tabs(["Researcher dashboard", "Clinician entry"])
+tab_r, tab_c, tab_admin, tab_etl = st.tabs([
+    "Researcher dashboard",
+    "Clinician entry",
+    "Admin audit",
+    "ETL data entry",
+])
 
 # ================================================================ RESEARCHER
 with tab_r:
@@ -314,6 +329,7 @@ with tab_r:
                                      alt.Tooltip("total:Q", title="Treatments")])
                     .interactive())
             st.altair_chart(finish(line, 340), theme=None)
+            download_chart_csv(g, "download_resistance_over_time", "resistance_over_time.csv")
 
     # ---- two charts side by side
     left, right = st.columns(2, gap="large")
@@ -345,6 +361,7 @@ with tab_r:
                                          alt.Tooltip("failed_treatments:Q", title="Failed"),
                                          alt.Tooltip("total_treatments:Q", title="Total")]))
                 st.altair_chart(finish(bars, max(220, 26 * len(s2))), theme=None)
+                download_chart_csv(s2, "download_failure_by_mutation", "failure_by_mutation.csv")
                 st.caption("gyrA is highlighted: it is the mutation linked to fluoroquinolone failure.")
 
     with right:
@@ -368,6 +385,7 @@ with tab_r:
                                       alt.Tooltip("pct_resistant:Q", title="Resistant %", format=".1f"),
                                       alt.Tooltip("tests:Q", title="Tests")]))
             st.altair_chart(finish(bars3, max(220, 26 * len(df3))), theme=None)
+            download_chart_csv(df3, "download_lab_resistance", "lab_resistance_by_antibiotic.csv")
             st.caption(f"{len(df3)} antibiotics in this chart.")
 
     h_col, o_col = st.columns(2, gap="large")
@@ -388,6 +406,7 @@ with tab_r:
                           x=alt.X("failure_pct:Q", title="Failure (%)"),
                           tooltip=["hospital", "total", "failure_pct"]))
             st.altair_chart(finish(ch, max(200, 40 * len(dh))), theme=None)
+            download_chart_csv(dh, "download_failure_by_hospital", "failure_by_hospital.csv")
     with o_col:
         section("Outcome mix", "Number of treatments by result")
         do = to_num(cached("researcher",
@@ -398,6 +417,7 @@ with tab_r:
                           x=alt.X("n:Q", title="Treatments"),
                           tooltip=["result", "n"]))
             st.altair_chart(finish(co, max(200, 40 * len(do))), theme=None)
+            download_chart_csv(do, "download_outcome_mix", "outcome_mix.csv")
 
     # ---- strain lookup
     section("Strain lookup", "Full history: mutations, treatments and outcomes. "
@@ -434,6 +454,24 @@ with tab_c:
                 unsafe_allow_html=True)
     abx = run_query("clinician", "SELECT antibiotic_id, name FROM antibiotic ORDER BY name")
     abx_map = dict(zip(abx["name"], abx["antibiotic_id"]))
+    hospitals = run_query(
+        "clinician",
+        """SELECT hospital_id, name, city
+           FROM hospital
+           WHERE is_active = TRUE
+           ORDER BY name, city, hospital_id""",
+    )
+    hospital_map = {
+        f"{row['name']} ({row['city']}) [#{row['hospital_id']}]": int(row["hospital_id"])
+        for _, row in hospitals.iterrows()
+    }
+    hospital_labels = list(hospital_map)
+    if hospital_labels:
+        selected_hospital = st.selectbox("Hospital filter", hospital_labels)
+        selected_hospital_id = hospital_map[selected_hospital]
+    else:
+        selected_hospital_id = None
+        st.info("No active hospitals are available for clinician entry.")
 
     side, main = st.columns([1, 2], gap="large")
     with side:
@@ -461,7 +499,11 @@ with tab_c:
             follow_up = d2.date_input("Follow-up date", value=dt.date.today() + dt.timedelta(days=14))
             resistance = st.checkbox("Resistance confirmed")
             notes = st.text_area("Notes")
-            submit = st.form_submit_button("Save treatment and outcome", type="primary")
+            submit = st.form_submit_button(
+                "Save treatment and outcome",
+                type="primary",
+                disabled=selected_hospital_id is None,
+            )
 
         if submit:
             conn = None
@@ -469,21 +511,32 @@ with tab_c:
                 conn = get_connection("clinician")
                 cur = conn.cursor()
                 cur.execute(
-                    """INSERT INTO treatment
-                       (strain_id, antibiotic_id, dosage_mg, duration_days, start_date, prescribing_physician)
-                       VALUES (%s, %s, %s, %s, %s, %s)""",
-                    (int(strain_id), int(abx_map[antibiotic]), dosage, int(duration),
-                     start, physician or None))
-                tid = cur.lastrowid
+                    """SELECT strain_id
+                       FROM strain
+                       WHERE strain_id = %s AND hospital_id = %s AND is_active = TRUE""",
+                    (int(strain_id), selected_hospital_id),
+                )
+                if cur.fetchone() is None:
+                    raise ValueError("The strain is not active at the selected hospital.")
                 cur.execute(
-                    """INSERT INTO outcome
-                       (treatment_id, result, resistance_confirmed, follow_up_date, notes)
-                       VALUES (%s, %s, %s, %s, %s)""",
-                    (tid, result, resistance, follow_up, notes or None))
-                conn.commit()
+                    """CALL sp_record_treatment(
+                           %s, %s, %s, %s, %s, %s, %s, %s, %s, %s
+                       )""",
+                    (int(strain_id), int(abx_map[antibiotic]), dosage, int(duration),
+                     start, physician or None, result, resistance, follow_up, notes or None),
+                )
+                result_row = cur.fetchone()
+                if result_row is None:
+                    raise RuntimeError("The treatment procedure did not return a treatment ID.")
+                tid = result_row[0]
+                while cur.nextset():
+                    cur.fetchall()
                 text = f"Saved. Treatment #{tid} (start {start}, follow-up {follow_up}) and its outcome were added."
                 feedback.markdown(f'<div class="bf-msg ok">{html.escape(text)}</div>', unsafe_allow_html=True)
                 st.toast("Saved", icon="✅")
+            except ValueError as e:
+                text = f"Invalid entry: {e}"
+                feedback.markdown(f'<div class="bf-msg err">{html.escape(text)}</div>', unsafe_allow_html=True)
             except mysql.connector.Error as e:
                 if conn: conn.rollback()
                 text = f"Database rejected this entry: {e.msg}"
@@ -497,15 +550,183 @@ with tab_c:
                 if conn: conn.close()
 
     section("Most recent entries")
-    recent = run_query("clinician", """
-        SELECT t.treatment_id, t.strain_id, a.name AS antibiotic, t.start_date,
-               o.result, o.follow_up_date
-        FROM treatment t
-        JOIN antibiotic a ON a.antibiotic_id = t.antibiotic_id
-        LEFT JOIN outcome o ON o.treatment_id = t.treatment_id
-        ORDER BY t.treatment_id DESC LIMIT 8
-    """)
+    if selected_hospital_id is not None:
+        recent = run_query("clinician", """
+            SELECT t.treatment_id, t.strain_id, a.name AS antibiotic, t.start_date,
+                   o.result, o.follow_up_date
+            FROM treatment t
+            JOIN strain s ON s.strain_id = t.strain_id
+            JOIN antibiotic a ON a.antibiotic_id = t.antibiotic_id
+            LEFT JOIN outcome o ON o.treatment_id = t.treatment_id
+            WHERE s.hospital_id = %s
+            ORDER BY t.treatment_id DESC LIMIT 8
+        """, (selected_hospital_id,))
+    else:
+        recent = pd.DataFrame()
     table(recent)
+
+# ================================================================ ADMIN
+with tab_admin:
+    st.markdown(
+        '<div class="bf-role">bioforge_admin &middot; privileged local-demo access</div>',
+        unsafe_allow_html=True,
+    )
+    st.warning(
+        "This role tab is for a trusted local demo only. The app has no user "
+        "authentication; do not expose it to untrusted users."
+    )
+    records_tab, audit_tab = st.tabs(["Recent clinical records", "Audit log"])
+    with records_tab:
+        section("Recent clinical records", "New clinician submissions appear here")
+        recent_records = run_query(
+            "admin",
+            """
+            SELECT t.treatment_id, t.strain_id, h.name AS hospital,
+                   a.name AS antibiotic, t.start_date, t.prescribing_physician,
+                   o.result, o.follow_up_date, t.is_active
+            FROM treatment t
+            JOIN strain s ON s.strain_id = t.strain_id
+            LEFT JOIN hospital h ON h.hospital_id = s.hospital_id
+            JOIN antibiotic a ON a.antibiotic_id = t.antibiotic_id
+            LEFT JOIN outcome o ON o.treatment_id = t.treatment_id
+            ORDER BY t.treatment_id DESC
+            LIMIT 100
+            """,
+        )
+        if recent_records.empty:
+            msg("info", "No clinical treatment records have been submitted yet.")
+        else:
+            table(recent_records, max_rows=100)
+
+    with audit_tab:
+        section("Audit log", "Updates and soft deletes to treatment and outcome records")
+        st.info(
+            "New treatment submissions are INSERTs, so they appear under Recent clinical "
+            "records. The audit triggers log UPDATEs only, including soft deletes."
+        )
+        audit_table = st.selectbox(
+            "Audited table",
+            ["All tables", "treatment", "outcome"],
+            key="admin_audit_table",
+        )
+        audit_sql = """
+            SELECT audit_id, table_name, record_id, `action`, old_values, new_values,
+                   changed_by, changed_at
+            FROM audit_log
+        """
+        audit_params = ()
+        if audit_table != "All tables":
+            audit_sql += " WHERE table_name = %s"
+            audit_params = (audit_table,)
+        audit_sql += " ORDER BY changed_at DESC, audit_id DESC LIMIT 100"
+        audit_rows = run_query("admin", audit_sql, audit_params)
+        if audit_rows.empty:
+            msg("info", "No audit records match that filter.")
+        else:
+            table(audit_rows, max_rows=100)
+
+# ================================================================ ETL
+with tab_etl:
+    st.markdown(
+        '<div class="bf-role">bioforge_etl &middot; insert-only data entry</div>',
+        unsafe_allow_html=True,
+    )
+    st.caption(
+        "This form uses only the ETL account's INSERT permissions for strain, mutation, "
+        "and strain_mutation. It cannot read, update, or delete existing records. "
+        "Set Hospital ID to 0 for no hospital."
+    )
+    section("Add strain and mutation", "The strain, mutation, and link are inserted together.")
+    with st.form("etl_entry"):
+        etl_strain, etl_mutation = st.columns(2)
+        with etl_strain:
+            etl_hospital_id = st.number_input("Hospital ID (0 = none)", min_value=0, value=0, step=1)
+            etl_species = st.text_input("Species", value="Escherichia coli")
+            etl_source = st.text_input("Isolate source")
+            etl_collection_date = st.date_input("Collection date", value=dt.date.today())
+            etl_geography = st.text_input("Geographic origin")
+            etl_accession = st.text_input("Genome accession")
+        with etl_mutation:
+            etl_gene = st.text_input("Gene name")
+            etl_mutation_type = st.selectbox(
+                "Mutation type",
+                ["SNP", "insertion", "deletion", "frameshift", "duplication", "inversion"],
+            )
+            etl_position = st.number_input("Genome position (0 = unknown)", min_value=0, value=0, step=1)
+            etl_ref = st.text_input("Reference allele")
+            etl_alt = st.text_input("Alternate allele")
+            etl_description = st.text_area("Mutation description")
+            etl_detection_date = st.date_input("Detection date", value=dt.date.today())
+            etl_method = st.text_input("Sequencing method", value="WGS")
+            etl_confidence = st.slider("Confidence score", 0.0, 1.0, 1.0, 0.01)
+        etl_submit = st.form_submit_button("Insert ETL records", type="primary")
+
+    if etl_submit:
+        etl_conn = None
+        try:
+            if not etl_species.strip() or not etl_gene.strip():
+                raise ValueError("Species and gene name are required.")
+            etl_conn = get_connection("etl")
+            etl_cur = etl_conn.cursor()
+            etl_cur.execute(
+                """INSERT INTO strain
+                       (hospital_id, species, isolate_source, collection_date,
+                        geographic_origin, genome_accession)
+                   VALUES (%s, %s, %s, %s, %s, %s)""",
+                (
+                    int(etl_hospital_id) or None,
+                    etl_species.strip(),
+                    etl_source.strip() or None,
+                    etl_collection_date,
+                    etl_geography.strip() or None,
+                    etl_accession.strip() or None,
+                ),
+            )
+            etl_strain_id = etl_cur.lastrowid
+            etl_cur.execute(
+                """INSERT INTO mutation
+                       (gene_name, mutation_type, genome_position, ref_allele, alt_allele, description)
+                   VALUES (%s, %s, %s, %s, %s, %s)""",
+                (
+                    etl_gene.strip(),
+                    etl_mutation_type,
+                    int(etl_position) or None,
+                    etl_ref.strip() or None,
+                    etl_alt.strip() or None,
+                    etl_description.strip() or None,
+                ),
+            )
+            etl_mutation_id = etl_cur.lastrowid
+            etl_cur.execute(
+                """INSERT INTO strain_mutation
+                       (strain_id, mutation_id, detection_date, sequencing_method, confidence_score)
+                   VALUES (%s, %s, %s, %s, %s)""",
+                (
+                    etl_strain_id,
+                    etl_mutation_id,
+                    etl_detection_date,
+                    etl_method.strip() or None,
+                    etl_confidence,
+                ),
+            )
+            etl_conn.commit()
+            st.success(
+                f"Inserted strain #{etl_strain_id}, mutation #{etl_mutation_id}, "
+                "and their association."
+            )
+        except ValueError as e:
+            st.error(f"Invalid entry: {e}")
+        except mysql.connector.Error as e:
+            if etl_conn:
+                etl_conn.rollback()
+            st.error(f"Database rejected this entry: {e.msg}")
+        except Exception as e:
+            if etl_conn:
+                etl_conn.rollback()
+            st.error(f"Unexpected error: {type(e).__name__}: {e}")
+        finally:
+            if etl_conn:
+                etl_conn.close()
 
 st.markdown('<div class="bf-foot">Patient-level data is synthetic for demonstration; '
             'strains marked BV-BRC are real public data.</div>', unsafe_allow_html=True)
